@@ -16,8 +16,6 @@ pub enum RZError {
     ParseError(String),
     #[error("Internal error: {0}")]
     System(String),
-    #[error("roomzin node unreachable: {0}")]
-    RoomzinUnreachable(String),
     #[error("no leader found in cluster")]
     NoLeaderAvailable,
     #[error("no follower node found in cluster")]
