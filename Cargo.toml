@@ -4,3 +4,17 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+arc-swap = "1.9.2"
+bytes = "1.12.1"
+clap = { version = "4.6.6", features = ["derive"] }
+futures = "0.3.33"
+num_cpus = "1.17.0"
+reqwest = { version = "0.13.4", features = ["json"] }
+serde = "1.0.229"
+serde_yml = "0.0.13"
+thiserror = "2.0.20"
+tokio = { version = "1.53.1", features = ["full"] }
+tokio-util = "0.7.19"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = true, features = ["env-filter", "json", "time"] }
+

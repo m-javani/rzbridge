@@ -1,0 +1,21 @@
+rzid_addr: "rzid.internal:8080"
+rzpoint_addr: "rzpoint.internal:9090"
+
+roomzin_api_port: 8080
+roomzin_tcp_port: 7777
+
+listen_host: "0.0.0.0"
+listen_port: 9000
+
+conn_per_roomzin_node: 4
+max_connections: 10000
+max_active_conns: 10000
+
+timeout_sec: 2
+http_timeout_sec: 2
+keep_alive_sec: 30
+node_probe_interval_sec: 2
+rzid_heartbeat_interval_secs: 10
+
+# worker_threads: 0   # 0 = auto (physical CPUs * 3)
+# tokens_path: "./auth.yml"
