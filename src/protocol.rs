@@ -1,5 +1,4 @@
 use bytes::{Bytes, BytesMut};
-use std::io::{self, Write};
 use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
@@ -102,21 +101,6 @@ pub fn prepend_header(clr_id: u32, payload: &[u8]) -> Vec<u8> {
     out.extend_from_slice(&total_len.to_le_bytes());
     out.extend_from_slice(payload);
     out
-}
-
-pub fn build_login_payload(token: &str) -> io::Result<Vec<u8>> {
-    let mut buf = Vec::new();
-
-    let cmd = "LOGIN";
-    buf.write_all(&[(cmd.len() as u8)])?; // cmd len
-    buf.write_all(cmd.as_bytes())?; // cmd name
-    buf.write_all(&1u16.to_le_bytes())?; // field count = 1
-    buf.write_all(&0x01u16.to_le_bytes())?; // field ID
-    buf.write_all(&[0x01])?; // field type (string)
-    buf.write_all(&(token.len() as u32).to_le_bytes())?; // token len
-    buf.write_all(token.as_bytes())?; // token
-
-    Ok(buf)
 }
 
 use crate::error::RZError;

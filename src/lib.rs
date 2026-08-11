@@ -1,4 +1,3 @@
-pub mod auth;
 pub mod cluster_handler;
 pub mod config;
 pub mod connection;

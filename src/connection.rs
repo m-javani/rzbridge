@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::{auth, error::RZError};
+use crate::error::RZError;
 
 use crate::demux::DemuxMap;
 use crate::protocol::drain_frame_async;
@@ -10,7 +10,7 @@ use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicU32, Ordering},
 };
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
@@ -36,19 +36,6 @@ impl Connection {
     ) -> Result<Self, RZError> {
         let stream = TcpStream::connect((&*host, cfg.roomzin_tcp_port)).await?;
         let (mut reader, mut writer) = stream.into_split();
-
-        let login_frame = super::protocol::prepend_header(
-            0,
-            &super::protocol::build_login_payload(&auth::get_roomzin_token())?,
-        );
-        writer.write_all(&login_frame).await?;
-        writer.flush().await?;
-
-        let mut login_resp = [0u8; 8];
-        reader.read_exact(&mut login_resp).await?;
-        if &login_resp != b"LOGIN OK" {
-            return Err(RZError::Auth("login failed".into()));
-        }
 
         let (send_tx, mut send_rx) = mpsc::channel(cfg.max_active_conns.max(2048));
 

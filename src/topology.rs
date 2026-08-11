@@ -9,10 +9,8 @@ use crate::rzid::RzidClient;
 
 use std::time::Duration;
 
-use reqwest::{Client, header};
+use reqwest::Client;
 use serde::Deserialize;
-
-use crate::auth;
 
 /// Information returned by a cluster node's `/node-info` endpoint.
 #[derive(Debug, Clone, Deserialize)]
@@ -60,14 +58,7 @@ impl NodeClient {
         path: &str,
     ) -> Result<T, RZError> {
         let url = format!("http://{}{}", self.addr(hostname), path);
-        let auth_token = auth::get_roomzin_token();
-
-        let mut req = self.client.get(&url);
-        if !auth_token.is_empty() {
-            req = req.header(header::AUTHORIZATION, format!("Bearer {auth_token}"));
-        }
-
-        let resp = req.send().await?;
+        let resp = self.client.get(&url).send().await?;
         if !resp.status().is_success() {
             return Err(RZError::Http(resp.status().to_string()));
         }
@@ -77,14 +68,7 @@ impl NodeClient {
     /// GET /healthz → body string (trimmed).
     pub async fn health(&self, hostname: &str) -> Result<String, RZError> {
         let url = format!("http://{}/healthz", self.addr(hostname));
-        let auth_token = auth::get_roomzin_token();
-
-        let mut req = self.client.get(&url);
-        if !auth_token.is_empty() {
-            req = req.header(header::AUTHORIZATION, format!("Bearer {auth_token}"));
-        }
-
-        let resp = req.send().await?;
+        let resp = self.client.get(&url).send().await?;
         if resp.status().as_u16() != 200 {
             return Err(RZError::Http(resp.status().to_string()));
         }

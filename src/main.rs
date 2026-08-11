@@ -8,7 +8,6 @@ use tracing::Level;
 use tracing_subscriber::fmt::time::UtcTime;
 
 use rzbridge::{
-    auth,
     cluster_handler::ClusterHandler,
     config::Config,
     error::RZError,
@@ -36,10 +35,6 @@ struct Args {
     /// Bridge ID
     #[clap(short, long)]
     bridge_id: String,
-
-    /// Path to the auth tokens file
-    #[clap(short = 't', long)]
-    tokens_path: Option<String>,
 }
 
 fn main() -> Result<(), RZError> {
@@ -66,22 +61,6 @@ fn main() -> Result<(), RZError> {
     config.zone_id = args.zone_id;
     config.shard_id = args.shard_id;
 
-    // Auth tokens path
-    let tokens_path = resolve_tokens_path(&args.tokens_path, &config)?;
-
-    // Load tokens on a small runtime before the main multi-thread runtime
-    {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|e| RZError::System(format!("Failed to build runtime: {e}")))?;
-        rt.block_on(async {
-            auth::init_token(&tokens_path)
-                .await
-                .map_err(|e| RZError::Config(format!("Auth error: {e}")))
-        })?;
-    }
-
     let desired_workers = if config.worker_threads == 0 {
         num_cpus::get_physical().max(1) * 3
     } else {
@@ -96,10 +75,10 @@ fn main() -> Result<(), RZError> {
         .build()
         .map_err(|e| RZError::System(format!("Failed to build runtime: {e}")))?;
 
-    rt.block_on(async_main(config, tokens_path))
+    rt.block_on(async_main(config))
 }
 
-async fn async_main(config: Config, tokens_path: String) -> Result<(), RZError> {
+async fn async_main(config: Config) -> Result<(), RZError> {
     let shutdown = CancellationToken::new();
 
     // Ctrl+C → cancel
@@ -111,9 +90,6 @@ async fn async_main(config: Config, tokens_path: String) -> Result<(), RZError> 
             shutdown.cancel();
         });
     }
-
-    // Auth token watcher
-    tokio::spawn(auth::start_watcher(tokens_path, shutdown.clone()));
 
     // --- Topology stack -------------------------------------------------------
     let rzid = RzidClient::new(
@@ -175,20 +151,4 @@ fn find_config_path(cli_config: Option<&String>) -> Option<String> {
         return Some("/etc/rzbridge/rzbridge.yml".to_string());
     }
     None
-}
-
-fn resolve_tokens_path(cli: &Option<String>, config: &Config) -> Result<String, RZError> {
-    if let Some(path) = cli {
-        return Ok(path.clone());
-    }
-    if !config.tokens_path.is_empty() {
-        return Ok(config.tokens_path.clone());
-    }
-    if Path::new("auth.yml").exists() {
-        return Ok("auth.yml".to_string());
-    }
-    if Path::new("/etc/rzbridge/auth.yml").exists() {
-        return Ok("/etc/rzbridge/auth.yml".to_string());
-    }
-    Err(RZError::Config("No auth file found".into()))
 }
