@@ -1,0 +1,7 @@
+.git
+*.md
+target
+benches
+!Cargo.toml
+!Cargo.lock
+!src
