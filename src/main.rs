@@ -1,7 +1,6 @@
-use std::path::Path;
+// main.rs
 use std::sync::Arc;
 
-use clap::Parser;
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 use tracing::Level;
@@ -13,29 +12,9 @@ use rzbridge::{
     error::RZError,
     resolver::RzPointResolver,
     rzid::{RzidClient, spawn_heartbeat_task},
-    tcp_server::TcpServer, // adjust module path if different
-    topology::{NodeClient, TopologyDiscovery}, // or node_client::NodeClient if separate
+    tcp_server::TcpServer,
+    topology::{NodeClient, TopologyDiscovery},
 };
-
-#[derive(Parser, Debug)]
-#[clap(author, version, about = "RzBridge – topology-aware edge proxy", long_about = None)]
-struct Args {
-    /// Path to the YAML configuration file
-    #[clap(short, long)]
-    config: Option<String>,
-
-    /// Zone ID
-    #[clap(short, long)]
-    zone_id: String,
-
-    /// Shard ID
-    #[clap(short, long)]
-    shard_id: String,
-
-    /// Bridge ID
-    #[clap(short, long)]
-    bridge_id: String,
-}
 
 fn main() -> Result<(), RZError> {
     // Logging
@@ -50,23 +29,17 @@ fn main() -> Result<(), RZError> {
     tracing::subscriber::set_global_default(subscriber)
         .expect("Failed to set global tracing subscriber");
 
-    let args = Args::parse();
+    let config = Config::parse();
 
-    // Config
-    let config_path = find_config_path(args.config.as_ref())
-        .ok_or_else(|| RZError::Config("No configuration file found".into()))?;
-
-    let mut config = Config::load(&config_path)?;
-    config.bridge_id = args.bridge_id;
-    config.zone_id = args.zone_id;
-    config.shard_id = args.shard_id;
-
-    let desired_workers = if config.worker_threads == 0 {
-        num_cpus::get_physical().max(1) * 3
-    } else {
-        config.worker_threads
-    };
-    tracing::info!(workers = desired_workers, "starting tokio runtime");
+    let desired_workers = config.effective_workers();
+    tracing::info!(
+        bridge_id = %config.bridge_id,
+        shard_id = %config.shard_id,
+        zone_id = %config.zone_id,
+        listen = %config.listen_addr(),
+        workers = desired_workers,
+        "starting RzBridge"
+    );
 
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(desired_workers)
@@ -136,19 +109,4 @@ async fn async_main(config: Config) -> Result<(), RZError> {
             res.map_err(|e| RZError::System(format!("tcp server error: {e}")))
         }
     }
-}
-
-fn find_config_path(cli_config: Option<&String>) -> Option<String> {
-    if let Some(path) = cli_config {
-        if Path::new(path).exists() {
-            return Some(path.clone());
-        }
-    }
-    if Path::new("rzbridge.yml").exists() {
-        return Some("rzbridge.yml".to_string());
-    }
-    if Path::new("/etc/rzbridge/rzbridge.yml").exists() {
-        return Some("/etc/rzbridge/rzbridge.yml".to_string());
-    }
-    None
 }
