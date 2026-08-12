@@ -9,6 +9,6 @@ COPY rzbridge /opt/rzbridge/rzbridge
 
 RUN chmod +x /opt/rzbridge/rzbridge
 
-EXPOSE 8777 3443
+EXPOSE 8080 9000
 
 CMD ["/opt/rzbridge/rzbridge"]
