@@ -48,7 +48,7 @@ impl RzidClient {
             .build()
             .map_err(|e| RZError::System(format!("Failed to build RZID client: {}", e)))?;
 
-        let base_url = format!("http://{}", rzid_addr);
+        let base_url = format!("{}", rzid_addr);
         Ok(Self {
             client,
             base_url,
