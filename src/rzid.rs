@@ -48,11 +48,7 @@ impl RzidClient {
             .build()
             .map_err(|e| RZError::System(format!("Failed to build RZID client: {}", e)))?;
 
-        let base_url = if rzid_addr.starts_with("http://") {
-            rzid_addr.trim_end_matches('/').to_string()
-        } else {
-            // Even if someone passes "https://", this will convert to "http://"
-            // Remove any protocol first, then add http://
+        let base_url = {
             let clean = rzid_addr
                 .trim_start_matches("http://")
                 .trim_start_matches("https://")
