@@ -24,12 +24,17 @@ impl RzPointResolver {
             .build()
             .map_err(|e| RZError::System(format!("Failed to build RzPoint client: {}", e)))?;
 
-        let base_url =
-            if rzpoint_address.starts_with("http://") || rzpoint_address.starts_with("https://") {
-                rzpoint_address.trim_end_matches('/').to_string()
-            } else {
-                format!("http://{}", rzpoint_address.trim_end_matches('/'))
-            };
+        let base_url = if rzpoint_address.starts_with("http://") {
+            rzpoint_address.trim_end_matches('/').to_string()
+        } else {
+            // Even if someone passes "https://", this will convert to "http://"
+            // Remove any protocol first, then add http://
+            let clean = rzpoint_address
+                .trim_start_matches("http://")
+                .trim_start_matches("https://")
+                .trim_end_matches('/');
+            format!("http://{}", clean)
+        };
 
         Ok(Self {
             client,
