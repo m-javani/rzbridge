@@ -7,9 +7,11 @@ use tracing::Level;
 use tracing_subscriber::fmt::time::UtcTime;
 
 use rzbridge::{
+    api::run_api_server,
     cluster_handler::ClusterHandler,
     config::Config,
     error::RZError,
+    metrics::Metrics,
     resolver::RzPointResolver,
     rzid::{RzidClient, spawn_heartbeat_task},
     tcp_server::TcpServer,
@@ -97,7 +99,20 @@ async fn async_main(config: Config) -> Result<(), RZError> {
     let listener = TcpListener::bind(config.listen_addr()).await?;
     tracing::info!("{} tcp server bound", config.listen_addr());
 
-    let server = TcpServer::new(Arc::new(config), shutdown.clone(), cluster);
+    let metrics = Arc::new(Metrics::new());
+
+    let api_cancel = shutdown.clone();
+    let api_metrics = metrics.clone();
+    let api_addr = config.api_listening_addr.clone();
+
+    tokio::spawn(async move {
+        if let Err(e) = run_api_server(api_addr, api_metrics, api_cancel).await {
+            tracing::error!("API server failed: {}", e);
+        }
+    });
+
+    // when creating TcpServer
+    let server = TcpServer::new(Arc::new(config), shutdown.clone(), cluster, metrics.clone());
 
     // Run until cancelled
     tokio::select! {

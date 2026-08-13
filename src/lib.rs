@@ -1,8 +1,10 @@
+pub mod api;
 pub mod cluster_handler;
 pub mod config;
 pub mod connection;
 pub mod demux;
 pub mod error;
+pub mod metrics;
 pub mod protocol;
 pub mod resolver;
 pub mod rzid;

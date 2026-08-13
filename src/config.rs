@@ -1,4 +1,5 @@
 use clap::Parser;
+use std::time::Duration;
 
 #[derive(Parser, Debug, Clone)]
 #[clap(author, version, about = "RzBridge – topology-aware roomzin gateway", long_about = None)]
@@ -35,13 +36,17 @@ pub struct Config {
     #[clap(long, default_value = "10")]
     pub rzid_heartbeat_interval_secs: u64,
 
-    /// Listen host address
+    /// Listen host address (TCP server)
     #[clap(long, default_value = "0.0.0.0")]
     pub listen_host: String,
 
-    /// Listen port
+    /// Listen port (TCP server)
     #[clap(long, default_value = "9000")]
     pub listen_port: u16,
+
+    /// HTTP API listen address (metrics + health), e.g. "0.0.0.0:9100"
+    #[clap(long, default_value = "0.0.0.0:9100")]
+    pub api_listening_addr: String,
 
     /// Connections per Roomzin node
     #[clap(long, default_value = "1")]
@@ -63,7 +68,7 @@ pub struct Config {
     #[clap(long, default_value = "2")]
     pub http_timeout_sec: u64,
 
-    /// Keep-alive interval in seconds
+    /// Keep-alive interval in seconds (used by other layers)
     #[clap(long, default_value = "30")]
     pub keep_alive_sec: u64,
 
@@ -74,6 +79,28 @@ pub struct Config {
     /// Tokio worker threads (0 = auto = cores * 3)
     #[clap(long, default_value = "0")]
     pub worker_threads: usize,
+
+    // ------------------------------------------------------------------
+    // Inbound TCP robustness (same semantics as the router)
+    // ------------------------------------------------------------------
+    /// Maximum time allowed to complete a single frame (seconds).
+    /// Protects against slowloris / partial-frame attacks.
+    #[clap(long, default_value = "20")]
+    pub frame_timeout_secs: u64,
+
+    /// Absolute idle timeout (seconds). Connection is closed if no activity
+    /// is seen for this long (the side that opened the connection is responsible
+    /// for sending keepalives).
+    #[clap(long, default_value = "90")]
+    pub idle_timeout_secs: u64,
+
+    /// Maximum size of the receive buffer per connection (bytes).
+    #[clap(long, default_value = "262144")] // 256 KiB
+    pub max_buffer_size: usize,
+
+    /// Maximum allowed size of a single frame (bytes).
+    #[clap(long, default_value = "16384")] // 16 KiB
+    pub max_frame_size: usize,
 }
 
 impl Config {
@@ -93,5 +120,19 @@ impl Config {
         } else {
             self.worker_threads
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Duration helpers used by the TCP server
+    // ------------------------------------------------------------------
+
+    #[inline]
+    pub fn frame_timeout(&self) -> Duration {
+        Duration::from_secs(self.frame_timeout_secs)
+    }
+
+    #[inline]
+    pub fn idle_timeout(&self) -> Duration {
+        Duration::from_secs(self.idle_timeout_secs)
     }
 }
