@@ -69,7 +69,7 @@ pub struct Config {
     pub http_timeout_sec: u64,
 
     /// Keep-alive interval in seconds (used by other layers)
-    #[clap(long, default_value = "30")]
+    #[clap(long, default_value = "15")]
     pub keep_alive_sec: u64,
 
     /// Node probe interval in seconds
