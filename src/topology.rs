@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use futures::future::join_all;
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::error::RZError;
 use crate::resolver::RzPointResolver;
@@ -273,7 +273,7 @@ impl TopologyDiscovery {
 
         let leader = leader_host.ok_or(RZError::NoLeaderAvailable)?;
 
-        info!(leader = %leader, followers = ?followers, "cluster topology discovered");
+        debug!(leader = %leader, followers = ?followers, "cluster topology discovered");
 
         Ok((ClusterTopology { leader, followers }, observed_ids))
     }
