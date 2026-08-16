@@ -67,12 +67,11 @@ pub async fn drain_frame_async(
         }
     }
 
-    // Explicitly discard the header part — we don't need it
-    let _ = buf.split_to(9);
+    // Take the full frame (header + payload) without splitting
+    let full_frame = buf.split_to(9 + payload_len).freeze();
 
-    // Take the payload
-    let payload_mut = buf.split_to(payload_len);
-    let payload = payload_mut.freeze();
+    // Payload starts at offset 9
+    let payload = full_frame.slice(9..);
 
     if payload.is_empty() {
         return Err(ProtocolError::ShortPayload("empty payload".into()));
@@ -95,7 +94,7 @@ pub async fn drain_frame_async(
         field_cnt,
     };
 
-    Ok((hdr, payload))
+    Ok((hdr, full_frame))
 }
 
 pub fn prepend_header(clr_id: u32, payload: &[u8]) -> Vec<u8> {

@@ -465,7 +465,7 @@ impl ClusterHandler {
             match resp_rx.await {
                 Ok(response) => {
                     // Restore the client's original clrid so their demux works.
-                    if response.len() >= 5 {
+                    if response.len() >= 9 {
                         let mut buf = bytes::BytesMut::from(response.as_ref());
                         buf[1..5].copy_from_slice(&original_clrid.to_le_bytes());
                         return Ok(buf.freeze());
