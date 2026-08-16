@@ -1,6 +1,7 @@
 use bytes::{Bytes, BytesMut};
 use rzbridge::error::RZError;
 use tokio::io::{AsyncRead, AsyncReadExt};
+use uuid::Uuid;
 
 // Constants
 pub const ROUTER_MAGIC: u8 = 0xFE;
@@ -258,26 +259,26 @@ pub fn decode_get_prop_room_day_response(
     })
 }
 
-fn bytes_to_property_id(data: &[u8]) -> String {
+/// Converts raw property ID bytes into String
+pub fn bytes_to_property_id(data: &[u8]) -> String {
+    // Case 1: too short
     if data.len() < 7 {
         return String::new();
     }
 
-    // Short string marker
+    // Case 2: short string marker (0xF0 in byte 6)
     if data[6] == 0xF0 {
-        // Left segment: 0..5
         let mut left_len = 0;
-        for i in 0..6 {
-            if i >= data.len() || data[i] == 0 {
+        for &b in &data[..6] {
+            if b == 0 {
                 break;
             }
             left_len += 1;
         }
 
-        // Right segment: 7..15
         let mut right_len = 0;
-        for i in 7..data.len() {
-            if data[i] == 0 {
+        for &b in &data[7..] {
+            if b == 0 {
                 break;
             }
             right_len += 1;
@@ -289,21 +290,19 @@ fn bytes_to_property_id(data: &[u8]) -> String {
         return String::from_utf8_lossy(&result).to_string();
     }
 
-    // UUID detection (valid version)
+    // Case 3: UUID detection (valid version in high nibble of byte 6)
     let version = (data[6] & 0xF0) >> 4;
-    match version {
-        1 | 2 | 3 | 4 | 5 | 7 => {
-            let uuid_len = std::cmp::min(16, data.len());
-            let uuid_bytes = &data[..uuid_len];
-            // For now, return hex representation instead of uuid
-            let hex: String = uuid_bytes.iter().map(|b| format!("{:02x}", b)).collect();
-            return hex;
-        }
-        _ => {}
+    if matches!(version, 1 | 2 | 3 | 4 | 5 | 7) {
+        let mut uuid_bytes = [0u8; 16];
+        let copy_len = data.len().min(16);
+        uuid_bytes[..copy_len].copy_from_slice(&data[..copy_len]);
+
+        let u = Uuid::from_bytes(uuid_bytes);
+        return u.to_string();
     }
 
-    // Fallback
-    String::from_utf8_lossy(data).to_string()
+    // Fallback — should never happen with valid server data
+    String::new()
 }
 
 // Main command serializer (extendable)
