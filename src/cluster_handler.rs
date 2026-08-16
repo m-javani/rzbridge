@@ -1,5 +1,5 @@
 use arc_swap::ArcSwap;
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -464,11 +464,10 @@ impl ClusterHandler {
 
             match resp_rx.await {
                 Ok(response) => {
-                    // Restore the client's original clrid so their demux works.
                     if response.len() >= 9 {
-                        let mut buf = bytes::BytesMut::from(response.as_ref());
-                        buf[1..5].copy_from_slice(&original_clrid.to_le_bytes());
-                        return Ok(buf.freeze());
+                        let mut bytes = BytesMut::from(response.as_ref());
+                        bytes[1..5].copy_from_slice(&original_clrid.to_le_bytes());
+                        return Ok(bytes.freeze()); // Zero-copy: converts to Bytes
                     }
                     return Ok(response);
                 }
