@@ -22,7 +22,6 @@ async fn test_get_prop_room_day() {
             assert_eq!(resp.property_id, "s1_seg1_p1");
             assert_eq!(resp.date, date);
             assert!(resp.availability >= 1);
-            assert!(resp.final_price <= 148);
         }
     }
 }

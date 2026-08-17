@@ -37,17 +37,19 @@ fn main() -> Result<(), RZError> {
         .build()
         .map_err(|e| RZError::System(format!("Failed to build runtime: {e}")))?;
 
-    let shutdown = CancellationToken::new();
+    rt.block_on(async {
+        let shutdown = CancellationToken::new();
 
-    // Ctrl+C → cancel
-    {
-        let shutdown = shutdown.clone();
-        tokio::spawn(async move {
-            let _ = tokio::signal::ctrl_c().await;
-            tracing::info!("Ctrl+C received, shutting down");
-            shutdown.cancel();
-        });
-    }
+        // Ctrl+C handler INSIDE the runtime
+        {
+            let shutdown = shutdown.clone();
+            tokio::spawn(async move {
+                let _ = tokio::signal::ctrl_c().await;
+                tracing::info!("Ctrl+C received, shutting down");
+                shutdown.cancel();
+            });
+        }
 
-    rt.block_on(async_main(config, shutdown))
+        async_main(config, shutdown).await
+    })
 }
