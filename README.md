@@ -19,11 +19,11 @@ Bridges can be deployed with multiple instances for high availability — each b
 Client SDK ──┐
              │
 HTTP Proxy ──┼──► Edge Router ──► Zone Router ──► Bridge ──► Roomzin Shard
-             │        │               │              │            │
-Other SDKs ──┘        │               │              │            │
-                      ▼               ▼              ▼            ▼
-                    RzID ◄────────────────────────────┘            │
-                    (Service Registry)                            │
+             │        │               │              │             │
+Other SDKs ──┘        │               │              │             │
+                      ▼               ▼              ▼             ▼
+                    RzID ◄───────────────────────────┘─────────────│
+                    (Service Registry)                             │
                                                                    │
                                               ┌────────────────────┼────────────────────┐
                                               │                    │                    │
@@ -176,7 +176,6 @@ Bridges discover shard topology from RzID, then fetch detailed node information 
 
 Bridges expose:
 
-- **Logs**: Structured JSON logs via `RUST_LOG` environment variable
 - **Metrics**: Prometheus metrics available at `/metrics` endpoint on the API port
 - **Health**: `/health` endpoint for readiness/liveness probes
 
